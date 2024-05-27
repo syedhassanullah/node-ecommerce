@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const User = require('../Models/UserSchema')
 const dbconnection = require('../database/db')
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+
 
 
 
@@ -10,9 +13,9 @@ const dbconnection = require('../database/db')
 
 router.post("/register", async (req,res) => {
     
-    const { name, email, DOB, gender, password, cpassword } = req.body;
+    const { fname, email, lname, phone, password, cpassword } = req.body;
 
-    if(!name || !email || !DOB || !gender || !password || !cpassword ){
+    if(!fname || !email || !lname || !phone || !password || !cpassword ){
         return res.status(422).send({
             message:"field is required"
         });
@@ -28,13 +31,14 @@ router.post("/register", async (req,res) => {
             });
         }
 
-
+        // const salt = bcrypt.genSaltSync(saltRound);
+        // const hash = bcrypt.hashSync(password, salt);
 
         const result = new User({
-            name : name,
+            fname : fname,
             email : email,
-            DOB : DOB,
-            gender : gender,
+            lname : lname,
+            phone : phone,
             password : password,
             cpassword : cpassword
         });
@@ -59,23 +63,57 @@ router.post("/register", async (req,res) => {
 });
 
 
-router.post('/signin',(req,res) => {
-    const { email , password} = req.body
+router.post('/signin', async (req, res) => {
+    const { email, password } = req.body;
+    console.log("body",req.body)
 
-    if(!email || !password){
-        res.status(401).send({
-            message:"email or password required "
+    if (!email || !password) {
+        return res.status(401).send({
+            message: "Email or password required"
         });
     }
 
-    const userLogin = User.findOne({email:email})
-    if (userLogin){
-        res.send({
-            status:404,
-            message:"sgin in successfully"
+    try {
+        const userLogin = await User.findOne({ email: email });
+        console.log("Ulogin",userLogin)
+
+        if (!userLogin) {
+            return res.status(401).send({
+                message: 'Invalid email or password'
+            });
+        }
+
+        const isMatch = await bcrypt.compare(password, userLogin.password);
+        console.log("isMatch",isMatch)
+    
+        if (isMatch) {
+
+            let token = jwt.sign(
+                {
+                    name: isMatch.name,
+                    email: userLogin.email
+                },
+                process.env.SECRET_TOKEN
+            );
+            console.log('tOKEN', token);
+
+
+            return res.status(200).send({
+                message: 'Login successful',
+                email: userLogin.email,
+                token: token
+            });
+        } else {
+            return res.status(401).send({
+                message: 'Invalid email or password'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).send({
+            message: 'Internal server error'
         });
     }
 });
-
 
 module.exports = router;

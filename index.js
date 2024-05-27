@@ -4,6 +4,8 @@ const User = require('./src/Models/UserSchema')
 const bodyparser = require('body-parser')
 const Authroute = require("./src/route/auth")
 require("dotenv").config();
+const cors = require("cors");
+
 
 const app = express();
 
@@ -18,8 +20,18 @@ dbconnection.on('connected' , ()=>{
 // app.get("/" , (req,res)=>{
 //     res.send('app is working.......')
 // });
+
+app.use(cors({ origin :"http://localhost:3000"}))
 app.use(bodyparser.json());
 app.use("/", Authroute);
+
+
+app.use(function (req,res,next){
+
+})
+
+
+
 
 
 // app.post("/register", async (req,res) => {
